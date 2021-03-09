@@ -20,6 +20,9 @@ def init_sqlite_db():
     conn.execute('CREATE TABLE IF NOT EXISTS blogs (id INTEGER PRIMARY KEY AUTOINCREMENT ,header TEXT, description TEXT, '
                  'image TEXT, body TEXT)')
 
+    conn.execute('CREATE TABLE IF NOT EXISTS subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT ,name TEXT, email TEXT)')
+
+
 
     print("Table created successfully")
 
@@ -139,6 +142,51 @@ def delete_data(data_id):
     finally:
         con.close()
     return render_template('delete-success.html', msg=msg)
+
+
+
+
+@app.route('/add-user/', methods=["POST"])
+def new_user():
+    if request.method == "POST":
+        msg = None
+        try:
+            data = request.get_json()
+            name = data['name']
+            email = data['email']
+
+
+            with sqlite3.connect('database.db') as con:
+                cur = con.cursor()
+                cur.execute("INSERT into subscribers (name,email) VALUES (?,?)",
+                            (name, email))
+                con.commit()
+                msg = name + "was successfully added to the database."
+        except Exception as e:
+            con.rollback()
+            msg = "Error occurred:" + str(e)
+        finally:
+            con.close()
+            return jsonify(msg=msg)
+
+@app.route('/show-users/', methods=["GET"])
+def show_users():
+    data = []
+    try:
+        with sqlite3.connect('database.db') as con:
+            con.row_factory = dict_factory
+            cur = con.cursor()
+            cur.execute('SELECT * subscribers')
+            data = cur.fetchall()
+            print("user added")
+
+    except Exception as e:
+        con.rollback()
+        print("There was an error fetching users:" + str(e))
+
+    finally:
+        con.close()
+    return jsonify(data)
 
 
 
